@@ -17,14 +17,8 @@ class UserManager(BaseUserManager):
         if not document:
             raise ValueError("Document field is required")
         
-        # Asignamos el rol de Aprendiz automáticamente
-        if "rol" not in extra_fields:
+        # Quitamos la comprobación del rol, porque ya se definió un usuario por default en el Modelo
 
-            # get_or_create busca el rol o lo crea si no existe. 
-            # Devuelve dos valores: el objeto y un booleano. El '_' descarta el booleano.
-            rol_aprendiz, _ = Rol.objects.get_or_create(name="Aprendiz")
-            extra_fields["rol"] = rol_aprendiz
-        
         user = self.model(document=document, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -34,7 +28,7 @@ class UserManager(BaseUserManager):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         
-        #Asignamos el rol de admin forzadamente debio a que usamos como referencia el create_user que tiene por defecto rol de aprendiz
+        #Asignamos el rol de admin forzadamente debido a que usamos como referencia el create_user que tiene por defecto rol de aprendiz
         rol_admin, _ = Rol.objects.get_or_create(name="Admin")
         extra_fields["rol"] = rol_admin
         # con esto se reutiliza la función de 'create_user' para evitar repetir el código de guardado en la db
@@ -52,7 +46,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     birth_date = models.DateField()
     email = models.EmailField(max_length=100, unique=True)
     # Ya no hace falta un password porque AbstractBaseUser ya nos lo da
-    rol = models.ForeignKey(Rol, on_delete=models.PROTECT, null=True)
+    rol = models.ForeignKey(Rol, on_delete=models.PROTECT, default=3) # Aquí ponemos el rol por defecto
     last_update = models.DateField(auto_now=True)
     created_at = models.DateField(auto_now_add=True)
 

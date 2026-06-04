@@ -25,6 +25,9 @@ class DiaryEntry(models.Model):
     description = models.TextField()
     emotion = models.ForeignKey(Emotion, on_delete=models.PROTECT)
 
+    def __str__(self):
+        return f"""Entrada de diario de: {self.diary}. Emoción: {self.emotion}"""
+
 class Objective(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     name = models.CharField(max_length=50)
@@ -33,3 +36,5 @@ class Objective(models.Model):
     created_at = models.DateField(auto_now_add=True)
     last_update = models.DateField(auto_now=True)
     
+    def __str__(self):
+        return f"""Objetivo de {self.user}: {self.name}"""
