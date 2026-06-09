@@ -19,6 +19,6 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('user_auth.urls')),          # Rutas de usuarios
-    path('api/', include('emotional_diary.urls')),    # Rutas del diario, entradas y emociones
+    path('api/auth/', include('user_auth.urls')),          # Rutas de usuarios
+    path('api/diary/', include('emotional_diary.urls')),    # Rutas del diario, entradas y emociones
 ]

@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import (AbstractBaseUser, PermissionsMixin, BaseUserManager)
+from django.core.validators import RegexValidator
 
 # Create your models here.
 
@@ -34,17 +35,40 @@ class UserManager(BaseUserManager):
         # con esto se reutiliza la función de 'create_user' para evitar repetir el código de guardado en la db
         return self.create_user(document, password, **extra_fields)
 
+# ------- Regex para el modelo de user -----------
+
+document_regex = RegexValidator(
+    regex=r'^\d{6,12}$',
+    message="El documento debe contener entre 6 y 12 números, sin puntos ni espacios.",
+    code="document_invalid",
+)
+
+names_regex= RegexValidator(
+    regex=r"^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+(?:[ '-][A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)*$",
+    message="El nombre solo puede contener letras y espacios.",
+    code="names_invalid",
+)
+
+email_regex= RegexValidator(
+    regex=r"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?",
+    message="La dirección de correo electrónico no es válida",
+    code="email_invalid"
+)
+
+# El Regex de la contraseña está en validators.py para que pueda leer la contraseña en texto plano, antes de que en UserManager el create_user la hashee
+
+# ------------------------------------------------
 
 class User(AbstractBaseUser, PermissionsMixin):
     # El AbstractBaseUser aporta el campo de contraseña con hash, last_login, y métodos de autenticación
     # Y PermissionsMixin hace posible que el panel de (/admin) funcione bien, dejando claro qué usuario puede ver, crear, editar o borrar registros.
 
-    document = models.CharField(max_length=20, unique=True)
+    document = models.CharField(max_length=20, unique=True, validators=[document_regex])
     doc_type = models.CharField(max_length=50)
-    names = models.CharField(max_length=100)
-    last_names = models.CharField(max_length=100)
+    names = models.CharField(max_length=100, validators=[names_regex])
+    last_names = models.CharField(max_length=100, validators=[names_regex])
     birth_date = models.DateField()
-    email = models.EmailField(max_length=100, unique=True)
+    email = models.EmailField(max_length=100, unique=True, validators=[email_regex])
     # Ya no hace falta un password porque AbstractBaseUser ya nos lo da
     rol = models.ForeignKey(Rol, on_delete=models.PROTECT, default=3) # Aquí ponemos el rol por defecto
     last_update = models.DateField(auto_now=True)
