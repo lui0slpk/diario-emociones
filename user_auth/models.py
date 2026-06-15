@@ -38,7 +38,7 @@ class UserManager(BaseUserManager):
 # ------- Regex para el modelo de user -----------
 
 document_regex = RegexValidator(
-    regex=r'^\d{6,12}$',
+    regex=r'\A\d{6,12}\Z',
     message="El documento debe contener entre 6 y 12 números, sin puntos ni espacios.",
     code="document_invalid",
 )
@@ -47,12 +47,6 @@ names_regex= RegexValidator(
     regex=r"^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+(?:[ '-][A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)*$",
     message="El nombre solo puede contener letras y espacios.",
     code="names_invalid",
-)
-
-email_regex= RegexValidator(
-    regex=r"[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?",
-    message="La dirección de correo electrónico no es válida",
-    code="email_invalid"
 )
 
 # El Regex de la contraseña está en validators.py para que pueda leer la contraseña en texto plano, antes de que en UserManager el create_user la hashee
@@ -68,7 +62,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     names = models.CharField(max_length=100, validators=[names_regex])
     last_names = models.CharField(max_length=100, validators=[names_regex])
     birth_date = models.DateField()
-    email = models.EmailField(max_length=100, unique=True, validators=[email_regex])
+    email = models.EmailField(max_length=100, unique=True)
     # Ya no hace falta un password porque AbstractBaseUser ya nos lo da
     rol = models.ForeignKey(Rol, on_delete=models.PROTECT, default=3) # Aquí ponemos el rol por defecto
     last_update = models.DateField(auto_now=True)
