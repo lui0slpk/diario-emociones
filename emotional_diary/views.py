@@ -53,6 +53,6 @@ class DiaryEntryView(ModelViewSet):
     # definimos qué hacer cuando se cree un nuevo registro
     def perform_create(self, serializer):
         # Con esto buscamos el diario del usuario que está logeado
-        user_diary = Diary.objects.filter(user=self.request.user)
+        user_diary = Diary.objects.get(user=self.request.user)
         # Y con esto guardamos la entrada de diario sujeta a ese diario automáticamente
         return serializer.save(diary=user_diary)

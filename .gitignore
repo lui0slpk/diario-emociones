@@ -5,6 +5,7 @@ env/
 
 # Archivos de configuración con contraseñas
 .env
+.atl/
 
 # Archivos locales de Django y caché
 *.pyc
