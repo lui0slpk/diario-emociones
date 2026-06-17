@@ -11,7 +11,7 @@ class UserResourcePermission(BasePermission):
         
         # validamos el rol o si es super usuario
         if view.action == 'list':
-            return request.user.is_superuser or (request.user.rol and request.user.rol.name in ["Admin", "Psicólogo"])
+            return request.user.is_superuser or (request.user.rol and request.user.rol.name in ["Admin", "Psicologo"])
         
         return True
     
@@ -24,6 +24,6 @@ class UserResourcePermission(BasePermission):
             return request.user.is_superuser or is_owner
         
         # y aquí validamos el rol: admin o psicólogo
-        is_admin_or_psycho = request.user.is_superuser or (request.user.rol and request.user.rol.name in ["Admin", "Psicólogo"])
+        is_admin_or_psycho = request.user.is_superuser or (request.user.rol and request.user.rol.name in ["Admin", "Psicologo"])
 
         return is_admin_or_psycho or is_owner

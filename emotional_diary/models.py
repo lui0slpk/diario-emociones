@@ -22,7 +22,7 @@ class Emotion(models.Model):
 class DiaryEntry(models.Model):
     diary = models.ForeignKey(Diary, on_delete=models.CASCADE)
     date = models.DateField(auto_now_add=True)
-    description = models.TextField()
+    description = models.TextField(max_length=1000)
     emotion = models.ForeignKey(Emotion, on_delete=models.PROTECT)
 
     def __str__(self):
