@@ -5,13 +5,13 @@ from rest_framework.exceptions import ValidationError
 # además queremos poder traducir el texto que aparezca
 from django.utils.translation import gettext_lazy as _
 from .serializer import DiarySerializer, DiaryEntrySerializer, EmotionSerializer, ObjectiveSerializer
-from .models import Diary, DiaryEntry, Emotion, Objective
-from .permissions import UserResourceObjectivePermission
+from .models import Diary, DiaryEntry, Objective
+from .permissions import ObjectiveResourcePermission, EmotionResourcePermission
 
 # Create your views here.
 class EmotionView(ModelViewSet):
     serializer_class = EmotionSerializer
-    queryset = Emotion.objects.all()
+    permission_classes = [EmotionResourcePermission]
 
 class DiaryView(ModelViewSet):
     serializer_class = DiarySerializer
@@ -60,7 +60,7 @@ class DiaryEntryView(ModelViewSet):
 
 class ObjectiveView(ModelViewSet):
     serializer_class = ObjectiveSerializer
-    permission_classes = [UserResourceObjectivePermission] # usamos permisos personalizados para limpiar el código
+    permission_classes = [ObjectiveResourcePermission] # usamos permisos personalizados para limpiar el código
 
     # devolvemos los objetivos del usuario
     def get_queryset(self):        

@@ -1,6 +1,6 @@
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 
-class UserResourceObjectivePermission(BasePermission):
+class ObjectiveResourcePermission(BasePermission):
 
     # Definimos los permisos iniciales
     def has_permission(self, request, view):
@@ -19,3 +19,18 @@ class UserResourceObjectivePermission(BasePermission):
 
         # Uso este is_owner porque si alguien manda un cambio que no es suyo saldrá None, para evitar que eso pase, usamos eso para verificar
         return is_owner
+    
+
+class EmotionResourcePermission(BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated
+    
+    def has_object_permission(self, request, view, obj):
+        is_staff = request.user.is_superuser and (request.user.rol and request.user.rol.name in ['Admin', 'Psicologo'])
+
+        if request.method not in SAFE_METHODS:
+            return is_staff
+        
+        return True
+        
+        
