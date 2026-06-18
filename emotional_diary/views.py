@@ -51,9 +51,6 @@ class DiaryEntryView(ModelViewSet):
     def perform_create(self, serializer):
         # Con esto buscamos el diario del usuario que está logeado
         user_diary = self.request.user.diary
-        # Validamos que este diario realmente exista
-        if not user_diary:
-            raise ValidationError(_("El usuario no tiene un diario asociado"), code='diary_does_not_exist')
         # Y con esto guardamos la entrada de diario sujeta a ese diario
         return serializer.save(diary=user_diary)
 
