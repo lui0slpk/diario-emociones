@@ -23,14 +23,25 @@ class ObjectiveResourcePermission(BasePermission):
 
 class EmotionResourcePermission(BasePermission):
     def has_permission(self, request, view):
-        return request.user.is_authenticated
-    
-    def has_object_permission(self, request, view, obj):
-        is_staff = request.user.is_superuser and (request.user.rol and request.user.rol.name in ['Admin', 'Psicologo'])
 
-        if request.method not in SAFE_METHODS:
-            return is_staff
+        # Verificamos que para acceder a modificaciones de emociones, debe estar logueado
+        if not request.user.is_authenticated:
+            return False
+
+        # Solo el admin y el psicólogo pueden crear una emoción
+        if view.action == 'create':
+            return request.user.is_superuser or (request.user.rol and request.user.rol.name in ['Admin', 'Psicologo'])
         
         return True
+    
+    def has_object_permission(self, request, view, obj):
+        is_admin_or_psycho = request.user.is_superuser or (request.user.rol and request.user.rol.name in ['Admin', 'Psicologo'])
+
+        # Solo los administradores y los psicólogos pueden modificar, eliminar y crear emociones
+        if request.method not in SAFE_METHODS:
+            return is_admin_or_psycho
+        
+        # En caso de querer hacer otras acciones, el usuario deberá estar logueado
+        return request.user.is_authenticated
         
         
