@@ -31,7 +31,7 @@ class DiaryEntry(models.Model):
 class Objective(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     name = models.CharField(max_length=50)
-    description = models.TextField()
+    description = models.TextField(max_length=400)
     state = models.CharField(max_length=50, default="En progreso")
     created_at = models.DateField(auto_now_add=True)
     last_update = models.DateField(auto_now=True)

@@ -4,8 +4,9 @@ from rest_framework.permissions import IsAuthenticated # Esto lo usamos para pod
 from rest_framework.exceptions import ValidationError
 # además queremos poder traducir el texto que aparezca
 from django.utils.translation import gettext_lazy as _
-from .serializer import DiarySerializer, DiaryEntrySerializer, EmotionSerializer
-from .models import Diary, DiaryEntry, Emotion
+from .serializer import DiarySerializer, DiaryEntrySerializer, EmotionSerializer, ObjectiveSerializer
+from .models import Diary, DiaryEntry, Emotion, Objective
+from .permissions import UserResourceObjectivePermission
 
 # Create your views here.
 class EmotionView(ModelViewSet):
@@ -56,3 +57,19 @@ class DiaryEntryView(ModelViewSet):
         user_diary = Diary.objects.get(user=self.request.user)
         # Y con esto guardamos la entrada de diario sujeta a ese diario automáticamente
         return serializer.save(diary=user_diary)
+
+class ObjectiveView(ModelViewSet):
+    serializer_class = ObjectiveSerializer
+    permission_classes = [UserResourceObjectivePermission] # usamos permisos personalizados para limpiar el código
+
+    # devolvemos los objetivos del usuario
+    def get_queryset(self):        
+        return Objective.objects.filter(user=self.request.user)        
+    
+    # hacemos que al crear se guarde automáticamente relacionado al usuario
+    def perform_create(self, serializer):
+        return serializer.save(user = self.request.user)
+    # lo mismo al actualizar
+    def perform_update(self, serializer):
+        return serializer.save(user = self.request.user)
+
