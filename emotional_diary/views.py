@@ -1,18 +1,20 @@
-from rest_framework.viewsets import ModelViewSet
+from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from rest_framework.permissions import IsAuthenticated # Esto lo usamos para poder proteger las rutas
 # usaremos ValidationError para poder lanzar errores de validación
 from rest_framework.exceptions import ValidationError
 # además queremos poder traducir el texto que aparezca
 from django.utils.translation import gettext_lazy as _
-from .serializer import DiarySerializer, DiaryEntrySerializer, EmotionSerializer
-from .models import Diary, DiaryEntry, Emotion
+from .serializer import DiarySerializer, DiaryEntrySerializer, EmotionSerializer, ObjectiveSerializer
+from .models import Diary, DiaryEntry, Objective, Emotion
+from .permissions import ObjectiveResourcePermission, EmotionResourcePermission
 
 # Create your views here.
 class EmotionView(ModelViewSet):
     serializer_class = EmotionSerializer
     queryset = Emotion.objects.all()
+    permission_classes = [EmotionResourcePermission]
 
-class DiaryView(ModelViewSet):
+class DiaryView(ReadOnlyModelViewSet): # Es un modelo de solo vista, porque el diario se crea con el signals.py automáticamente
     serializer_class = DiarySerializer
     permission_classes = [IsAuthenticated] # Nadie puede ver un diario sin estar logueado
 
@@ -24,11 +26,6 @@ class DiaryView(ModelViewSet):
             return Diary.objects.all()
         # Y al usuario, sólo el suyo
         return Diary.objects.filter(user=user)
-    
-    # Con el perform_create, definimos cómo se guarda un nuevo registro en la base de datos
-    # En este caso, hacemos que se ponga el usuario logeado al diario
-    def perform_create(self, serializer):
-        return serializer.save(user = self.request.user)
 
 class DiaryEntryView(ModelViewSet):
     serializer_class = DiaryEntrySerializer
@@ -46,13 +43,29 @@ class DiaryEntryView(ModelViewSet):
             # en caso de no dar un usuario, lanzar error
             raise ValidationError(_("Debe seleccionar un usuario para consultar las entradas del diario"), code="no_user_id_selected")
 
-        # el __ en diary__user es el INNER JOIN que buscamos
+        # el __ en diary__user es el "INNER JOIN" que buscamos, así que filtramos utilizando el ORM de DJango
         return DiaryEntry.objects.filter(diary__user=user)
     
     
     # definimos qué hacer cuando se cree un nuevo registro
     def perform_create(self, serializer):
         # Con esto buscamos el diario del usuario que está logeado
-        user_diary = Diary.objects.filter(user=self.request.user)
-        # Y con esto guardamos la entrada de diario sujeta a ese diario automáticamente
+        user_diary = self.request.user.diary
+        # Y con esto guardamos la entrada de diario sujeta a ese diario
         return serializer.save(diary=user_diary)
+
+class ObjectiveView(ModelViewSet):
+    serializer_class = ObjectiveSerializer
+    permission_classes = [ObjectiveResourcePermission] # usamos permisos personalizados para limpiar el código
+
+    # devolvemos los objetivos del usuario
+    def get_queryset(self):        
+        return Objective.objects.filter(user=self.request.user)
+    
+    # hacemos que al crear se guarde automáticamente relacionado al usuario
+    def perform_create(self, serializer):
+        return serializer.save(user = self.request.user)
+    # lo mismo al actualizar
+    def perform_update(self, serializer):
+        return serializer.save(user = self.request.user)
+
