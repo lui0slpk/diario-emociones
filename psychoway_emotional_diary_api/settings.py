@@ -139,7 +139,12 @@ STATIC_URL = 'static/'
 AUTH_USER_MODEL = 'user_auth.User'
 
 # cors authorization
-CORS_ALLOWED_ORIGINS = []
+CORS_ALLOWED_ORIGINS = [
+    os.getenv('LOCALHOST_FRONT_V1'),
+    os.getenv('LOCALHOST_FRONT_V2'),
+    os.getenv('LOCALHOST_FRONT_V3'),
+    os.getenv('LOCALHOST_FRONT_V4'),
+]
 
 # hacemos que JWT se use por defecto con DRF
 REST_FRAMEWORK = {
