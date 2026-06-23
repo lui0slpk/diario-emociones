@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 import AppLayout from "../layouts/AppLayout";
 import { motion } from "framer-motion";
+import { modalSuccess, modalError } from "../services/sweetalert";
 import {
   Heart,
   BookOpen,
@@ -33,7 +34,6 @@ function DiaryPage() {
   const [objectives, setObjectives] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showUpdateForm, setShowUpdateForm] = useState(false);
-  const [error, setError] = useState("");
   const [diaryId, setDiaryId] = useState(null);
 
   const [newObjective, setNewObjective] = useState({
@@ -76,45 +76,49 @@ function DiaryPage() {
   }, [fetchDiary, fetchEmotions, fetchEntries, fetchObjectives]);
 
   const handleRegisterEntry = async () => {
-    if (selectedEmotion === null) { setError("Seleccioná una emoción"); return; }
-    if (!diaryId) { setError("No se encontró tu diario. ¿Tenés un diario asignado?"); return; }
-    setLoading(true); setError("");
+    if (selectedEmotion === null) { modalError("Seleccioná una emoción"); return; }
+    if (!diaryId) { modalError("No se encontró tu diario. ¿Tenés un diario asignado?"); return; }
+    setLoading(true);
     try {
       await api.post("/api/diary/my-entries/", { emotion: selectedEmotion, description: diaryText.trim(), diary: diaryId });
       setSelectedEmotion(null); setDiaryText(""); fetchEntries();
-    } catch (err) { setError(err.response?.data?.detail || "Error al registrar entrada"); }
+      modalSuccess("Entrada registrada");
+    } catch (err) { modalError(err.response?.data?.detail || "Error al registrar entrada"); }
     finally { setLoading(false); }
   };
 
   const handleCreateObjective = async () => {
-    if (!newObjective.name.trim()) { setError("El nombre del objetivo es obligatorio"); return; }
-    setLoading(true); setError("");
+    if (!newObjective.name.trim()) { modalError("El nombre del objetivo es obligatorio"); return; }
+    setLoading(true);
     try {
       await api.post("/api/diary/my-objectives/", newObjective);
       setNewObjective({ name: "", description: "", state: "En progreso" }); fetchObjectives();
-    } catch (err) { setError(err.response?.data?.detail || "Error al crear objetivo"); }
+      modalSuccess("Objetivo creado");
+    } catch (err) { modalError(err.response?.data?.detail || "Error al crear objetivo"); }
     finally { setLoading(false); }
   };
 
   const handleUpdateObjective = async () => {
-    if (!updateObjective.id) { setError("Seleccioná un objetivo"); return; }
-    setLoading(true); setError("");
+    if (!updateObjective.id) { modalError("Seleccioná un objetivo"); return; }
+    setLoading(true);
     try {
       await api.put(`/api/diary/my-objectives/${updateObjective.id}/`, updateObjective);
       setShowUpdateForm(false);
       setUpdateObjective({ id: "", name: "", description: "", state: "En progreso" }); fetchObjectives();
-    } catch (err) { setError(err.response?.data?.detail || "Error al actualizar"); }
+      modalSuccess("Objetivo actualizado");
+    } catch (err) { modalError(err.response?.data?.detail || "Error al actualizar"); }
     finally { setLoading(false); }
   };
 
   const handleDeleteObjective = async () => {
-    if (!updateObjective.id) { setError("Seleccioná un objetivo"); return; }
-    setLoading(true); setError("");
+    if (!updateObjective.id) { modalError("Seleccioná un objetivo"); return; }
+    setLoading(true);
     try {
       await api.delete(`/api/diary/my-objectives/${updateObjective.id}/`);
       setShowUpdateForm(false);
       setUpdateObjective({ id: "", name: "", description: "", state: "En progreso" }); fetchObjectives();
-    } catch (err) { setError(err.response?.data?.detail || "Error al eliminar"); }
+      modalSuccess("Objetivo eliminado");
+    } catch (err) { modalError(err.response?.data?.detail || "Error al eliminar"); }
     finally { setLoading(false); }
   };
 
@@ -131,14 +135,6 @@ function DiaryPage() {
 
   return (
     <AppLayout pageTitle="Diario de Emociones" pageSubtitle="Registrá cómo te sentís" currentPage="diario">
-      {/* Error toast */}
-      {error && (
-        <div className="flex items-center gap-2 bg-red-100 text-red-700 rounded-lg px-4 py-2 mb-4 text-sm">
-          <span className="flex-1">{error}</span>
-          <button onClick={() => setError("")} className="text-red-500 hover:text-red-700 font-bold cursor-pointer">&times;</button>
-        </div>
-      )}
-
       <motion.div initial="hidden" animate="visible" variants={variants} className="space-y-6">
 
         {/* SECCIÓN 1: EMOCIONES */}

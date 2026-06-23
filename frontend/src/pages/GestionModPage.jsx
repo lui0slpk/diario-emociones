@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import AppLayout from "../layouts/AppLayout";
 import { motion } from "framer-motion";
+import { modalSuccess, modalError, showConfirm } from "../services/sweetalert";
 import { Edit3, UserPlus, Search, Trash2, Eye, EyeOff } from "lucide-react";
 import api from "../services/api";
 
@@ -9,10 +10,7 @@ function GestionModPage() {
   const [docSearch, setDocSearch] = useState("");
   const [userFound, setUserFound] = useState(null);
   const [searching, setSearching] = useState(false);
-  const [searchError, setSearchError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const [form, setForm] = useState({
@@ -44,7 +42,7 @@ function GestionModPage() {
 
   const searchUser = async () => {
     if (!docSearch.trim()) return;
-    setSearching(true); setSearchError(""); setUserFound(null); setError(""); setSuccess("");
+    setSearching(true); setUserFound(null);
     try {
       const res = await api.get("/api/auth/users/");
       const users = res.data;
@@ -52,7 +50,7 @@ function GestionModPage() {
         (u) => String(u.document) === docSearch.trim()
       );
       if (!found) {
-        setSearchError("No se encontró ningún usuario con ese documento.");
+        modalError("No se encontró ningún usuario con ese documento.");
         return;
       }
       setUserFound(found);
@@ -67,7 +65,7 @@ function GestionModPage() {
         password: "",
       });
     } catch (err) {
-      setSearchError("Error al buscar usuarios. ¿Tenés permisos de administrador?");
+      modalError("Error al buscar usuarios. ¿Tenés permisos de administrador?");
     } finally { setSearching(false); }
   };
 
@@ -75,20 +73,19 @@ function GestionModPage() {
     let value = e.target.value;
     if (e.target.name === "document") value = value.replace(/\D/g, "");
     setForm({ ...form, [e.target.name]: value });
-    setError(""); setSuccess("");
   };
 
   const handleUpdate = async (e) => {
     e.preventDefault();
     if (!form.document || !form.names || !form.last_names || !form.email) {
-      setError("Completá los campos obligatorios.");
+      modalError("Completá los campos obligatorios.");
       return;
     }
     if (form.password && !passValida) {
-      setError("La contraseña no cumple con los requisitos de seguridad.");
+      modalError("La contraseña no cumple con los requisitos de seguridad.");
       return;
     }
-    setSaving(true); setError(""); setSuccess("");
+    setSaving(true);
     try {
       const payload = {
         doc_type: form.doc_type,
@@ -102,26 +99,27 @@ function GestionModPage() {
       if (form.password) payload.password = form.password;
 
       await api.patch(`/api/auth/users/${userFound.id}/`, payload);
-      setSuccess("Usuario actualizado correctamente.");
+      modalSuccess("Usuario actualizado correctamente.");
       setUserFound({ ...userFound, ...payload });
     } catch (err) {
       const data = err.response?.data;
-      if (data) setError(Object.values(data).flat().join(". "));
-      else setError("Error al actualizar usuario.");
+      if (data) modalError(Object.values(data).flat().join(". "));
+      else modalError("Error al actualizar usuario.");
     } finally { setSaving(false); }
   };
 
   const handleDelete = async () => {
-    if (!window.confirm("¿Estás seguro de eliminar este usuario? Esta acción no se puede deshacer.")) return;
-    setSaving(true); setError(""); setSuccess("");
+    const confirmed = await showConfirm("Eliminar usuario", "¿Estás seguro de eliminar este usuario? Esta acción no se puede deshacer.");
+    if (!confirmed) return;
+    setSaving(true);
     try {
       await api.delete(`/api/auth/users/${userFound.id}/`);
-      setSuccess("Usuario eliminado correctamente.");
+      modalSuccess("Usuario eliminado correctamente.");
       setUserFound(null);
       setForm({ rol: "", doc_type: "", document: "", names: "", last_names: "", birth_date: "", email: "", password: "" });
       setDocSearch("");
     } catch (err) {
-      setError("Error al eliminar usuario.");
+      modalError("Error al eliminar usuario.");
     } finally { setSaving(false); }
   };
 
@@ -150,20 +148,7 @@ function GestionModPage() {
                     <Search size={16} /> {searching ? "Buscando..." : "Buscar"}
                   </motion.button>
                 </div>
-                {searchError && <p className="text-red-500 text-xs mt-1">{searchError}</p>}
               </div>
-
-              {error && (
-                <div className="flex items-center gap-2 bg-red-100 text-red-700 rounded-lg px-4 py-2 mb-4 text-sm">
-                  <span>{error}</span>
-                  <button onClick={() => setError("")} className="ml-auto text-red-500 font-bold cursor-pointer">&times;</button>
-                </div>
-              )}
-              {success && (
-                <div className="flex items-center gap-2 bg-green-100 text-green-700 rounded-lg px-4 py-2 mb-4 text-sm">
-                  <span>{success}</span>
-                </div>
-              )}
 
               {userFound && (
                 <form onSubmit={handleUpdate}>

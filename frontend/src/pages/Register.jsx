@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { showSuccess, showError } from '../services/sweetalert';
 
 function Register() {
 	const navigate = useNavigate();
@@ -9,7 +10,6 @@ function Register() {
 	const [showPassword, setShowPassword] = useState(false);
 	const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 	const [touched, setTouched] = useState({});
-	const [error, setError] = useState('');
 	const [loading, setLoading] = useState(false);
 
 	const [form, setForm] = useState({
@@ -57,7 +57,6 @@ function Register() {
 		if (e.target.name === 'documento') value = value.replace(/\D/g, '');
 		setForm({ ...form, [e.target.name]: value });
 		setTouched({ ...touched, [e.target.name]: true });
-		setError('');
 	};
 
 	const Regla = ({ ok, texto }) => (
@@ -82,13 +81,13 @@ function Register() {
 		});
 
 		if (!formularioValido) {
-			setError(
+			showError(
 				'Por favor corrige los errores en el formulario antes de continuar.',
 			);
 			return;
 		}
 		if (form.contraseña !== form.confirmarContraseña) {
-			setError('Las contraseñas no coinciden');
+			showError('Las contraseñas no coinciden');
 			return;
 		}
 
@@ -103,18 +102,19 @@ function Register() {
 				email: form.correo.toLowerCase().trim(),
 				password: form.contraseña,
 			});
+			showSuccess('¡Cuenta creada correctamente!');
 			navigate('/');
 		} catch (err) {
 			const data = err.response?.data;
 			if (err.response?.status === 400 && data) {
-				setError(
+				showError(
 					Object.values(data).flat().join('. ') ||
 						'Error al registrar.',
 				);
 			} else if (err.response?.status === 409) {
-				setError('El documento o correo ya existe.');
+				showError('El documento o correo ya existe.');
 			} else {
-				setError('Error al conectar con el servidor.');
+				showError('Error al conectar con el servidor.');
 			}
 		} finally {
 			setLoading(false);
@@ -131,25 +131,6 @@ function Register() {
 					Crea una cuenta en <br />
 					PsychoWay
 				</h2>
-
-				{error && (
-					<div className="flex items-center gap-2 bg-red-100 text-red-700 rounded-lg px-3 py-2 mb-3 text-sm">
-						<svg
-							width="18"
-							height="18"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							strokeWidth="2"
-							className="shrink-0"
-						>
-							<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-							<line x1="12" y1="9" x2="12" y2="13" />
-							<line x1="12" y1="17" x2="12.01" y2="17" />
-						</svg>
-						<span>{error}</span>
-					</div>
-				)}
 
 				<form onSubmit={handleSubmit}>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">

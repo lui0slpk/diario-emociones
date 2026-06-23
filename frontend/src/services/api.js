@@ -22,7 +22,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // No redirigir si es el endpoint de login — el error se muestra en la página
+    if (error.response?.status === 401 && !error.config?.url?.includes("/api/auth/token/")) {
       localStorage.removeItem("auth_token");
       localStorage.removeItem("auth_user");
       window.location.href = "/";

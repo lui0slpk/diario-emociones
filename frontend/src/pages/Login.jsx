@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { resolveRoleName } from "../config/roles";
+import { showSuccess, showError } from "../services/sweetalert";
 
 function Login() {
   const navigate = useNavigate();
@@ -9,25 +10,9 @@ function Login() {
 
   const [form, setForm] = useState({ documento: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
-  const [showError, setShowError] = useState(false);
-  const [successMsg, setSuccessMsg] = useState("");
-  const [showSuccess, setShowSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const mostrarError = (msg) => {
-    setErrorMsg(msg);
-    setShowError(true);
-    setTimeout(() => setShowError(false), 5000);
-  };
-
-  const mostrarExito = (msg) => {
-    setSuccessMsg(msg);
-    setShowSuccess(true);
-  };
-
   const handleChange = (e) => {
-    if (showError) setShowError(false);
     setForm({ ...form, [e.target.id]: e.target.value });
   };
 
@@ -37,16 +22,16 @@ function Login() {
     try {
       const user = await login(form.documento, form.password);
       const nombre = user.names || "usuario";
-      mostrarExito(`¡Bienvenido/a, ${nombre}!`);
+      showSuccess(`¡Bienvenido/a, ${nombre}!`);
       const roleName = resolveRoleName(user.rol);
       const roleRoutes = {
         Aprendiz: "/diario",
         Psicologo: "/psi-seguimiento",
         Admin: "/gestion",
       };
-      setTimeout(() => navigate(roleRoutes[roleName] || "/diario"), 1500);
+      navigate(roleRoutes[roleName] || "/diario");
     } catch (err) {
-      mostrarError(
+      showError(
         err.response?.data?.detail ||
         err.response?.data?.message ||
         "Documento o contraseña incorrectos."
@@ -58,28 +43,6 @@ function Login() {
 
   return (
     <div className="h-screen flex items-center justify-center bg-[#f5f0ff]">
-      {/* Animaciones */}
-      <style>{`
-        @keyframes slideDown {
-          from { opacity: 0; transform: translateY(-15px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes shake {
-          0%,100% { transform: translateX(0); }
-          15% { transform: translateX(-6px); }
-          30% { transform: translateX(6px); }
-          45% { transform: translateX(-4px); }
-          60% { transform: translateX(4px); }
-          75% { transform: translateX(-2px); }
-          90% { transform: translateX(2px); }
-        }
-        .anim-error {
-          animation: slideDown 0.35s ease-out, shake 0.5s ease-in-out 0.35s;
-        }
-        .anim-success {
-          animation: slideDown 0.35s ease-out;
-        }
-      `}</style>
 
       {/* Card principal */}
       <div className="flex max-w-[960px] w-[95%] shadow-lg rounded-2xl overflow-hidden bg-white">
@@ -112,32 +75,6 @@ function Login() {
               </p>
 
               <form onSubmit={handleSubmit}>
-                {/* Error alert */}
-                {showError && (
-                  <div className="anim-error flex items-center gap-2 bg-red-100 text-red-700 rounded-lg px-3 py-2 mb-3 text-sm">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0">
-                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                      <line x1="12" y1="9" x2="12" y2="13" />
-                      <line x1="12" y1="17" x2="12.01" y2="17" />
-                    </svg>
-                    <span className="flex-1">{errorMsg}</span>
-                    <button type="button" onClick={() => setShowError(false)}
-                      className="text-red-500 hover:text-red-700 text-lg leading-none">&times;</button>
-                  </div>
-                )}
-
-                {/* Success alert */}
-                {showSuccess && (
-                  <div className="anim-success flex items-center gap-2 rounded-lg px-3 py-2 mb-3 text-sm font-medium"
-                    style={{ backgroundColor: "#e8dff5", color: "#4B0082" }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0">
-                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                      <polyline points="22 4 12 14.01 9 11.01" />
-                    </svg>
-                    <span>{successMsg}</span>
-                  </div>
-                )}
-
                 {/* Documento */}
                 <div className="mb-3">
                   <label htmlFor="documento" className="block text-white text-sm font-medium mb-1">

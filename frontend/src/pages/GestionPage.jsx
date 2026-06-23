@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import AppLayout from "../layouts/AppLayout";
 import { motion } from "framer-motion";
+import { modalSuccess, modalError } from "../services/sweetalert";
 import { UserPlus, Edit3, Eye, EyeOff } from "lucide-react";
 import api from "../services/api";
 
@@ -9,8 +10,6 @@ function GestionPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [touched, setTouched] = useState({});
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   const [form, setForm] = useState({
     rol: "",
@@ -48,17 +47,16 @@ function GestionPage() {
     if (e.target.name === "document") value = value.replace(/\D/g, "");
     setForm({ ...form, [e.target.name]: value });
     setTouched({ ...touched, [e.target.name]: true });
-    setError(""); setSuccess("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setTouched({ document: true, password: true });
     if (!passwordValida || !documentValido || !form.rol) {
-      setError("Corregí los errores antes de continuar.");
+      modalError("Corregí los errores antes de continuar.");
       return;
     }
-    setLoading(true); setError(""); setSuccess("");
+    setLoading(true);
     try {
       // Mapear nombre del rol a ID
       const roleMap = { aprendiz: 3, psicologo: 2, administrador: 1 };
@@ -67,13 +65,13 @@ function GestionPage() {
         rol: roleMap[form.rol],
         email: form.email.toLowerCase().trim(),
       });
-      setSuccess("Usuario creado correctamente.");
+      modalSuccess("Usuario creado correctamente.");
       setForm({ rol: "", doc_type: "", document: "", names: "", last_names: "", birth_date: "", email: "", password: "" });
       setTouched({});
     } catch (err) {
       const data = err.response?.data;
-      if (data) setError(Object.values(data).flat().join(". "));
-      else setError("Error al crear usuario.");
+      if (data) modalError(Object.values(data).flat().join(". "));
+      else modalError("Error al crear usuario.");
     } finally { setLoading(false); }
   };
 
@@ -94,18 +92,6 @@ function GestionPage() {
                 <UserPlus size={20} /> Crear una Cuenta
               </h3>
               <p className="text-gray-500 text-sm mb-6">Registrá un nuevo usuario en el sistema</p>
-
-              {error && (
-                <div className="flex items-center gap-2 bg-red-100 text-red-700 rounded-lg px-4 py-2 mb-4 text-sm">
-                  <span>{error}</span>
-                  <button onClick={() => setError("")} className="ml-auto text-red-500 font-bold cursor-pointer">&times;</button>
-                </div>
-              )}
-              {success && (
-                <div className="flex items-center gap-2 bg-green-100 text-green-700 rounded-lg px-4 py-2 mb-4 text-sm">
-                  <span>{success}</span>
-                </div>
-              )}
 
               <form onSubmit={handleSubmit}>
                 <div className="mb-4">
