@@ -1,0 +1,76 @@
+@startuml
+!theme plain
+skinparam backgroundColor #f5f0ff
+skinparam rectangleFontSize 11
+skinparam arrowColor #4B0082
+
+title **PsychoWay — Jerarquía de Componentes Frontend**
+
+rectangle "<b>&lt;AuthProvider&gt;</b>\nglobalState: user, login, logout, hasRole" as provider
+rectangle "<b>&lt;BrowserRouter&gt;</b>" as router
+
+rectangle "<b>App</b>\nRoute definitions" as app
+
+rectangle "<b>&lt;Login /&gt;</b>\n/ (root)" as login
+rectangle "<b>&lt;Register /&gt;</b>\n/registro" as register
+
+rectangle "<b>&lt;ProtectedRoute&gt;</b>\nroles?: Admin\nfallback?: /diario" as guard
+
+rectangle "<b>&lt;AppLayout&gt;</b>\nsidebar: navByRole\nheader + footer" as layout
+
+rectangle "<b>&lt;DiaryPage /&gt;</b>\n/diario\nfetch: entries, emotions, objectives\nCRUD entries + objectives" as diary
+
+rectangle "<b>&lt;GestionPage /&gt;</b>\n/gestion\nCrear usuarios (Admin)" as gestion
+
+rectangle "<b>&lt;GestionModPage /&gt;</b>\n/gestion-mod\nBuscar, editar, eliminar users" as gestionmod
+
+rectangle "<b>AuthContext</b>\nuseAuth() hook\nrestoreSession, login, register, logout" as authctx
+rectangle "<b>api.js</b>\nAxios instance\nInterceptors: Bearer token, 401 handler" as api
+rectangle "<b>sweetalert.js</b>\ntoast, showSuccess, showError, showConfirm, modalSuccess, modalError" as swal
+rectangle "<b>roles.js</b>\nROLE_ID_MAP, resolveRoleName()" as roles
+rectangle "<b>lucide-react</b>\nIcons" as icons
+rectangle "<b>framer-motion</b>\nAnimated mount" as motion
+
+' --- Hierarchy ---
+provider --> router
+router --> app
+
+app --> login : Route "/"
+app --> register : Route "/registro"
+app --> guard : Route "/diario"
+app --> guard : Route "/gestion"
+app --> guard : Route "/gestion-mod"
+
+guard --> layout
+layout --> diary
+layout --> gestion
+layout --> gestionmod
+
+' --- Dependencies ---
+login ..> authctx : useAuth()
+register ..> authctx
+diary ..> authctx
+gestion ..> authctx
+gestionmod ..> authctx
+
+login ..> api
+register ..> api
+diary ..> api
+gestion ..> api
+gestionmod ..> api
+
+login ..> swal
+register ..> swal
+diary ..> swal
+gestion ..> swal
+gestionmod ..> swal
+
+login ..> roles : resolveRoleName()
+diary ..> motion
+gestion ..> motion
+gestionmod ..> motion
+layout ..> icons
+
+layout ..> roles : navByRole[roleName]
+
+@enduml

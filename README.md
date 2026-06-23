@@ -14,6 +14,8 @@ Plataforma para el registro y seguimiento de emociones con roles de usuario (Apr
 
 ## Arquitectura
 
+![Diagrama de Arquitectura General](docs/architecture.png)
+
 ```
 diario-emociones/
 ├── psychoway_emotional_diary_api/   # Config Django (settings, urls raíz)
@@ -37,6 +39,26 @@ diario-emociones/
         └── services/                # api.js (Axios con interceptors JWT)
 ```
 
+## Modelo de Datos
+
+![Diagrama de Modelo de Datos](docs/models.png)
+
+```
+User "1" ──── "N" Rol         (Cada usuario TIENE UN solo rol)
+User "1" ──── "1" Diary       (Un usuario tiene un único diario)
+Diary "1" ──── "N" DiaryEntry (Un diario tiene muchas entradas)
+Emotion "1" ──── "N" DiaryEntry (Protegido: on_delete=PROTECT)
+User "1" ──── "N" Objective   (Cada usuario tiene muchos objetivos)
+```
+
+**Detalles clave del modelo:**
+- `User` extiende `AbstractBaseUser` + `PermissionsMixin`, login por `document` (no username)
+- `Rol` es una entidad separada con `ForeignKey` desde User — un usuario tiene exactamente **un** rol, no puede tener múltiples roles
+- `Diary` se crea automáticamente via **signal** `post_save` cuando un usuario con rol `Aprendiz` se registra
+- `DiaryEntry` tiene `emotion_detail` como nested serializer (read-only) para que GET devuelva el objeto emoción completo anidado
+- `Emotion` usa `on_delete=PROTECT` — no se puede borrar una emoción si hay entradas que la referencian
+- Los roles se crean dinámicamente: `Admin` al crear superuser, `Aprendiz` al registrarse un usuario público, `Psicólogo` desde el panel de admin
+
 ## Roles del sistema
 
 | Rol | Acceso |
@@ -45,7 +67,86 @@ diario-emociones/
 | **Psicólogo** | Visualización de diarios y seguimiento de pacientes |
 | **Aprendiz** | Registro de emociones, entradas y objetivos personales |
 
-Los roles se resuelven en el frontend mediante `src/config/roles.js`. Si los IDs no coinciden con tu base de datos, ajustalos ahí.
+El frontend resuelve el nombre del rol desde el ID numérico mediante `src/config/roles.js`. Si los IDs no coinciden con tu base de datos, ajustalos ahí.
+
+## Diagramas de Secuencia
+
+![Diagramas de Flujo](docs/sequences.png)
+
+Los diagramas muestran:
+1. **Login**: cómo el frontend obtiene el JWT, lo decodifica, y recupera los datos del usuario
+2. **Registrar entrada**: cómo se crea una entrada de diario con validación de autenticación y asignación automática al diario del usuario
+3. **Signal post_save**: cómo se crea automáticamente un `Diary` cuando un nuevo `User` con rol `Aprendiz` se registra
+
+### Flujo de Autenticación (JWT)
+
+```
+Login → POST /api/auth/token/ → { access, refresh }
+     → Decodificar JWT → user_id
+     → GET /api/auth/users/{id}/ → datos del usuario
+     → Guardar en localStorage + AuthContext
+```
+
+- Axios interceptor agrega `Bearer <token>` a cada request automáticamente
+- Otro interceptor captura errores 401 → limpia localStorage → redirige a `/`
+- `ProtectedRoute` verifica `isAuthenticated` y opcionalmente `hasRole` para rutas de admin
+
+## Patrones de Diseño
+
+### Backend
+
+| Patrón | Dónde | Explicación |
+|--------|-------|-------------|
+| **Model-View-Serializer (MVS)** | `models.py` + `views.py` + `serializer.py` | DRF desacopla datos, lógica y representación en 3 capas separadas |
+| **Repository (via ORM)** | `get_queryset()` en todas las views | Django ORM abstrae MySQL; las views nunca tocan SQL directo |
+| **Strategy** | `permissions.py` (4 clases) | Cada clase de permiso encapsula una estrategia de autorización intercambiable |
+| **Observer** | `signals.py` (post_save) | Cuando se crea un User, se dispara la creación automática del Diary |
+| **Factory Method** | `UserManager.create_user/superuser` | Encapsula la creación de usuarios con lógica de hash y defaults |
+| **DTO (Data Transfer Object)** | `serializer.py` | Serializers transforman modelos ↔ JSON, controlan qué campos se exponen |
+| **Template Method** | `ModelViewSet` (perform_create, get_queryset) | DRF define el esqueleto, las subclases implementan pasos concretos |
+| **Chain of Responsibility** | `AUTH_PASSWORD_VALIDATORS` | Los validadores de contraseña se ejecutan en cadena |
+
+### Frontend
+
+| Patrón | Dónde | Explicación |
+|--------|-------|-------------|
+| **Provider / Context** | `AuthContext.jsx` | AuthContext provee estado global de sesión a todo el árbol de componentes |
+| **Guard / Protected Routes** | `ProtectedRoute.jsx` | Componente que envuelve rutas y verifica autenticación + rol |
+| **Service Layer** | `services/api.js` + `sweetalert.js` | Abstrae la comunicación HTTP y las alertas del UI |
+| **Interceptor** | `api.js` (axios interceptors) | Intercepta requests (agrega token JWT) y responses (maneja 401) |
+| **Compound Component** | `AppLayout.jsx` | Layout que compone header + sidebar por rol + main + footer |
+| **Front Controller** | `App.jsx` + `BrowserRouter` | Router centralizado que dirige todo el tráfico de navegación |
+| **Container-Presentational** | pages vs components/layouts | Pages son containers con estado + lógica; layouts/components son presentacionales |
+
+## Sistema de Permisos (RBAC)
+
+Cuatro clases de permisos personalizadas implementan control de acceso basado en roles:
+
+| Permiso | CREATE | READ | UPDATE | DELETE |
+|---------|--------|------|--------|--------|
+| **Users** | Público | Admin/Psicólogo | Admin/Dueño | Admin/Dueño |
+| **Emotions** | Admin/Psicólogo | Autenticado | Admin/Psicólogo | Admin/Psicólogo |
+| **Objectives** | Solo Aprendiz | Solo Aprendiz | Solo Dueño | Solo Dueño |
+| **Diary** | Solo Admin | Según rol | Solo Admin | Solo Admin |
+
+## Frontend — Jerarquía de Componentes
+
+![Jerarquía de Componentes Frontend](docs/frontend-components.png)
+
+### Rutas protegidas
+
+| Ruta | Página | Acceso |
+|------|--------|--------|
+| `/` | Login | Público |
+| `/registro` | Registro | Público |
+| `/diario` | Diario de emociones | Autenticado |
+| `/gestion` | Crear usuarios | Admin |
+| `/gestion-mod` | Modificar/Eliminar usuarios | Admin |
+
+La navegación se adapta según el rol del usuario logueado (ver `AppLayout.jsx`):
+- **Aprendiz**: Diario de Emociones, Seguimiento, Agenda, Psychobot
+- **Psicólogo**: Seguimiento de pacientes, Agenda
+- **Admin**: Gestión de Usuarios
 
 ## Setup
 
@@ -136,15 +237,13 @@ pnpm dev
 | PUT/PATCH | `/api/diary/my-objectives/:id/` | Actualizar objetivo |
 | DELETE | `/api/diary/my-objectives/:id/` | Eliminar objetivo |
 
-## Frontend — rutas protegidas
+## Diagramas PlantUML
 
-| Ruta | Página | Acceso |
-|------|--------|--------|
-| `/` | Login | Público |
-| `/registro` | Registro | Público |
-| `/diario` | Diario de emociones | Autenticado |
-| `/gestion` | Crear usuarios | Admin |
-| `/gestion-mod` | Modificar/Eliminar usuarios | Admin |
+Los archivos fuente `.puml` están en `docs/`. Para regenerar los PNGs:
+
+```bash
+java -jar plantuml.jar -tpng docs/*.puml -o docs
+```
 
 ## Commits convencionales
 

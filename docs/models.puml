@@ -1,0 +1,102 @@
+@startuml
+!theme plain
+skinparam backgroundColor #f5f0ff
+skinparam classFontSize 11
+
+title **PsychoWay — Modelo de Datos (UML)**
+
+' --- User Auth Models ---
+class Rol {
+  + id: int
+  + name: string (unique)
+  ..
+  + __str__()
+}
+
+class User {
+  + id: int
+  + document: string (unique)
+  + doc_type: string
+  + names: string
+  + last_names: string
+  + birth_date: date
+  + email: string (unique)
+  + password: string (hash)
+  + rol: FK → Rol
+  + last_update: date
+  + created_at: date
+  + is_active: bool
+  + is_staff: bool
+  + is_superuser: bool
+  ..
+  + get_full_name()
+  + __str__()
+}
+
+class UserManager {
+  + create_user(document, password, **fields)
+  + create_superuser(document, password, **fields)
+}
+
+class CustomPasswordValidator {
+  + validate(password, user)
+  + get_help_text()
+}
+
+' --- Diary Models ---
+class Diary {
+  + id: int
+  + user: OneToOne → User
+  + date: date (auto_now_add)
+  + visibility: string
+  + last_update: date (auto_now)
+  ..
+  + __str__()
+}
+
+class Emotion {
+  + id: int
+  + name: string
+  + category: string
+  ..
+  + __str__()
+}
+
+class DiaryEntry {
+  + id: int
+  + diary: FK → Diary
+  + date: date (auto_now_add)
+  + description: text
+  + emotion: FK → Emotion (PROTECT)
+  ..
+  + __str__()
+}
+
+class Objective {
+  + id: int
+  + user: FK → User
+  + name: string
+  + description: text
+  + state: string
+  + created_at: date
+  + last_update: date
+  ..
+  + __str__()
+}
+
+' --- Relationships ---
+User "1" --> "N" Rol : "Cada usuario\nTIENE UN solo rol"
+UserManager .. User : "objects ="
+
+Diary o-- User : "1:1"
+DiaryEntry o-- Diary : "N:1"
+DiaryEntry o-- Emotion : "N:1\non_delete=PROTECT"
+Objective o-- User : "N:1"
+
+note top of User : AUTH_USER_MODEL\nAbstractBaseUser + PermissionsMixin\nUSERNAME_FIELD = 'document'
+
+note top of Rol : "Creado dinámicamente:\nAdmin, Psicologo, Aprendiz"
+
+note right of DiaryEntry : emotion_detail = EmotionSerializer\n(read_only, para GET con objeto anidado)
+
+@enduml

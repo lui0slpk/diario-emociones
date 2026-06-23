@@ -1,0 +1,127 @@
+@startuml
+!theme plain
+skinparam backgroundColor #f5f0ff
+skinparam componentStyle rectangle
+skinparam defaultFontSize 11
+
+title **PsychoWay — Diagrama de Arquitectura General**
+
+package "<b>Frontend</b> (React 19 + Vite + Tailwind v4)" as frontend {
+  [main.jsx] as entry
+  [<b>App.jsx</b>\nRouter + Provider] as app
+  [AuthContext] as authctx
+  [ProtectedRoute] as guard
+  [AppLayout] as layout
+
+  together {
+    [Login] as login
+    [Register] as register
+    [DiaryPage] as diary
+    [GestionPage] as gestion
+    [GestionModPage] as gestionmod
+  }
+
+  [api.js\nAxios + Interceptors] as api
+  [sweetalert.js] as swal
+  [roles.js] as roles
+}
+
+package "<b>Backend</b> (Django 6 + DRF + SimpleJWT)" as backend {
+  package "psychoway_emotional_diary_api\n(Project Config)" as proj {
+    [settings.py] as settings
+    [urls.py] as rooturl
+  }
+
+  package "<b>user_auth</b>\n(Auth App)" as authapp {
+    [User] as usermodel
+    [Rol] as rolm
+    [UserManager] as mgr
+    [UserView] as uview
+    [UserSerializer] as userer
+    [UserResourcePermission] as uperm
+    [CustomPasswordValidator] as pwv
+  }
+
+  package "<b>emotional_diary</b>\n(Diary App)" as diaryapp {
+    [Diary] as diarym
+    [Emotion] as emotm
+    [DiaryEntry] as entrym
+    [Objective] as objm
+
+    [DiaryView] as dview
+    [EmotionView] as eview
+    [DiaryEntryView] as eentryview
+    [ObjectiveView] as oview
+
+    [DiarySerializer] as dser
+    [EmotionSerializer] as eser
+    [DiaryEntrySerializer] as eeser
+    [ObjectiveSerializer] as oser
+
+    [ObjectiveResourcePermission] as operm
+    [EmotionResourcePermission] as eprem
+    [create_user_diary\nSignal] as sig
+  }
+
+  database "MySQL" as db
+}
+
+' --- Connections Frontend-Backend ---
+app ..> authctx : wraps
+authctx ..> api : uses
+api --> rooturl : HTTP /api/*
+guard ..> authctx : reads
+
+' --- API Routes ---
+login ..> rooturl : POST /api/auth/token/
+register ..> rooturl : POST /api/auth/users/
+diary ..> rooturl : GET /api/diary/*
+gestion ..> rooturl : GET/POST /api/auth/users/
+gestionmod ..> rooturl : PATCH/DEL /api/auth/users/
+
+' --- Backend internals ---
+rooturl --> authapp : /api/auth/
+rooturl --> diaryapp : /api/diary/
+
+uview ..> userer
+uview ..> uperm
+userer ..> usermodel
+userer ..> rolm
+
+dview ..> dser
+eview ..> eser
+eentryview ..> eeser
+oview ..> oser
+
+dview ..> diarym
+eview ..> emotm
+eentryview ..> entrym
+oview ..> objm
+
+dview ..> uperm
+eview ..> eprem
+oview ..> operm
+
+sig ..> diarym : post_save
+
+dview ..> usermodel : prefetch
+eentryview ..> diarym : diary__user
+
+usermodel ..> rolm : FK Rol\ncada usuario → un solo rol
+usermodel ..> mgr : objects=
+diarym ..> usermodel : FK User
+entrym ..> diarym : FK Diary
+entrym ..> emotm : FK Emotion
+objm ..> usermodel : FK User
+
+proj ..> db : MySQL
+
+legend right
+  <b>Stack</b>:
+  Frontend: React 19 + Vite 8 + Tailwind v4
+  HTTP: Axios + CRSF-free JWT
+  Backend: Django 6.0 + DRF + SimpleJWT
+  DB: MySQL via mysqlclient
+endlegend
+
+@enduml

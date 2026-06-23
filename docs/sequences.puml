@@ -1,0 +1,64 @@
+@startuml
+!theme plain
+skinparam backgroundColor #f5f0ff
+skinparam sequenceMessageAlign center
+skinparam defaultFontSize 11
+
+title **PsychoWay — Flujo de Login + Registro de Emoción**
+
+actor Usuario as user
+participant "React SPA" as spa
+participant "AuthContext" as ctx
+participant "Axios Interceptor" as axios
+participant "Django Server" as server
+database "MySQL" as db
+
+== FLUJO: Login ==
+user -> spa: Ingresa documento + contraseña
+spa -> ctx: login(document, password)
+ctx -> axios: POST /api/auth/token/
+axios -> server: POST /api/auth/token/
+server -> db: SELECT User WHERE document=?
+note right: SimpleJWT\nTokenObtainPairView
+db --> server: user + hash
+server -> server: verify password hash
+server --> axios: { access, refresh }
+axios --> ctx: tokens
+ctx -> ctx: atob(access) → payload.user_id
+ctx -> axios: GET /api/auth/users/{id}/
+axios -> server: GET /api/auth/users/{id}/
+server -> db: SELECT User WHERE id=?
+server --> axios: { names, rol, email, ... }
+ctx -> ctx: save to localStorage
+ctx -> ctx: setUser(data)
+ctx -> spa: userData, roleName
+spa -> spa: navigate(routeByRole)
+spa --> user: Dashboard renderizado
+
+== FLUJO: Registrar Entrada de Diario ==
+user -> spa: Elige emoción + escribe descripción
+spa -> ctx: get token from localStorage
+spa -> axios: POST /api/diary/my-entries/
+note right: Axios interceptor\nagrega Bearer token
+axios -> server: POST { emotion, description }
+server -> server: DiaryEntryView.perform_create()
+server -> server: request.user.diary → diary
+server -> server: serializer.save(diary=diary)
+server -> db: INSERT diary_entry
+db --> server: ok
+server --> axios: { id, date, emotion_detail }
+axios --> spa: response
+spa -> spa: fetchEntries() → refresh list
+spa --> user: Entry visible + toast success
+
+== FLUJO: Signal — Crear Diario al Registrar ==
+user -> spa: POST /api/auth/users/
+spa -> axios: POST { document, password, ... }
+axios --> server: UserSerializer.create()
+server -> db: INSERT user (rol=Aprendiz)
+server -> server: post_save signal fires
+server -> server: create_user_diary()
+server -> db: INSERT diary (user=created)
+note right: Solo si rol.name == "Aprendiz"
+
+@enduml
