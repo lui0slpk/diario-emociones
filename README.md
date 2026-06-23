@@ -14,6 +14,42 @@ Plataforma para el registro y seguimiento de emociones con roles de usuario (Apr
 
 ## Arquitectura
 
+### Modelo en Capas (Layered Architecture)
+
+La app sigue una **Full-stack Monolith**: un monolito backend con frontend SPA desacoplado, comunicación REST API.
+
+**Backend (Django REST Framework):**
+```
+HTTP Request (JSON)
+    ↓
+urls.py              → Front Controller (Router)
+    ↓
+views.py             → Controller (lógica de negocio + orquestación)
+    ↓
+serializer.py        → DTO (transformación modelo ↔ JSON)
+    ↓
+permissions.py       → Strategy (seguridad por rol)
+    ↓
+models.py            → Repository/ORM (abstracción de datos)
+    ↓
+Base de datos (MySQL)
+```
+
+**Frontend (React):**
+```
+BrowserRouter        → Front Controller
+    ↓
+Pages                → Containers (estado + lógica de UI)
+    ↓
+Layouts/Components   → Presentacionales (solo render)
+    ↓
+Services (api.js)    → Service Layer (HTTP + interceptores)
+    ↓
+Backend API (REST)
+```
+
+No hay microservicios, no hay SSR, no hay BFF. Es el approach más clásico y directo para una web app moderna.
+
 ![Diagrama de Arquitectura General](docs/architecture.png)
 
 ```
